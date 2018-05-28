@@ -2,37 +2,38 @@
 import cv2
 import numpy as np
 import math
+import svgwrite
 
 ## TODO: convert to gui with sliders for params and variable input
-scale = 40 
-sin_scale = 5 
-cycles = 3 
+scale = 20 
+sin_scale = 20
+pix_per_cycle = 10 
 
-img = cv2.imread('Half.jpg')
+img = cv2.imread('face.jpg')
 height, width, _ = img.shape
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-mini = cv2.resize(gray, None, fx = 1/float(scale), fy = 1/float(scale), interpolation = cv2.INTER_AREA)
+mini = cv2.resize(gray, None, fx = 1, fy = 1/float(scale), interpolation = cv2.INTER_AREA)
 mini_blur = cv2.GaussianBlur(mini, (5,5), 0)
 inv_mini_blur = cv2.bitwise_not(mini_blur)
 out = np.ones(gray.shape, np.uint8)*255
 
-# Generate Base Curve
-x = np.arange(0,cycles*2*math.pi,0.25)
-y = np.sin(x)
-# Scale to Box
-x = x*width/(cycles*2*math.pi*mini.shape[1])
-y = y*height/float(4*mini.shape[0])
+# Instantiat SVG Output
+dwg = svgwrite.Drawing('waves.svg', size=(width,height))
 
-for j in range(0,mini.shape[0]):
-    for i in range(0,mini.shape[1]):
-        # scale the wave and draw the line 
-        temp = zip(x+i*width/float(mini.shape[1]), y*inv_mini_blur[j,i]*sin_scale/255 + (j+0.5)*height/float(mini.shape[0]))
-        pts = np.array(temp).reshape((-1,1,2)).astype(np.int32)
-        cv2.polylines(out, [pts], False, 0)
-        
+xs = np.arange(0,mini.shape[1])
+ys = (inv_mini_blur/float(255))*sin_scale*np.sin(xs*2*math.pi/pix_per_cycle) + (np.matrix(range(0,mini.shape[0])).T + 0.5)*height/mini.shape[0]
+
+for row in ys:
+    pts = zip(xs, np.asarray(row).squeeze())
+    pts = np.array(pts).reshape((-1,1,2)).astype(np.int32)
+    cv2.polylines(out, [pts], False, 0)
+    pts = [(int(p[0,0]),int(p[0,1])) for p in pts]
+    dwg.add(dwg.polyline(points=pts, stroke='black', fill='none'))
+
 #cv2.imshow('rect',mini_blur)
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
 cv2.imwrite('waves.jpg',out)
+dwg.save()
