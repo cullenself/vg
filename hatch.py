@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import math
 from random import randint
+import svgwrite
 
 ## TODO: use polylines to make contours to make a mask to find the average value to color the triangles
 # gui to pick number of points and edge algorithm
@@ -10,11 +11,15 @@ from random import randint
 maxDensity = 2500000
 Q = lambda theta: np.matrix([[math.cos(theta), -math.sin(theta)],[math.sin(theta),math.cos(theta)]])
 
+print('Processing')
 img = cv2.imread('input2.jpg')
 height, width, _ = img.shape
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 edges = cv2.Canny(gray,100,500)
 out = np.ones(gray.shape, np.uint8)*255
+
+# Instantiate SVG Output
+dwg = svgwrite.Drawing('hatch.svg', size=(width,height))
 
 corners = cv2.goodFeaturesToTrack(edges,500,0.01,10)
 corners = np.int0(corners)
@@ -25,7 +30,10 @@ for i in corners:
     subdiv.insert((x,y))
 
 triList = subdiv.getTriangleList()
+i = 0
+print('Drawing')
 for t in triList:
+    i = i+1
     pts = np.array([(t[0], t[1]), (t[2], t[3]), (t[4], t[5])]).reshape((-1,1,2)).astype(np.int32)
     temp = np.zeros(gray.shape, np.uint8)
     mask = np.zeros(gray.shape, np.uint8)
@@ -40,12 +48,21 @@ for t in triList:
         lines = [[c+np.dot(Q(theta),np.array([x-maxDim,int(y)])-c), c+np.dot(Q(theta),np.array([x+2*maxDim,int(y)])-c)] for y in verts] 
         # todo rotate
         cv2.polylines(out, [pts], True, 0)
+        pts = [(int(p[0,0]),int(p[0,1])) for p in pts]
+        dwg.add(dwg.polyline(points=pts, stroke='black', fill='none'))
+        clip = dwg.defs.add(dwg.clipPath(id='cp_'+str(i)))
+        clip.add(dwg.polyline(points=pts))
         for line in lines:
-            cv2.line(temp, (int(line[0][0,0]), int(line[0][0,1])), (int(line[1][0,0]), int(line[1][0,1])), 1)
+            p1 = (int(line[0][0,0]), int(line[0][0,1]))
+            p2 = (int(line[1][0,0]), int(line[1][0,1]))
+            cv2.line(temp, p1, p2, 1)
+            dwg.add(dwg.line(start=p1,end=p2,stroke='black',clip_path='url(#cp_'+str(i)+')'))
         out = out + cv2.bitwise_and(mask,temp)
 
 #cv2.imshow('rect',gray)
 #cv2.waitKey(0)
 #cv2.destroyAllWindows()
 
+print('Saving')
 cv2.imwrite('hatch.jpg',out)
+dwg.save()
