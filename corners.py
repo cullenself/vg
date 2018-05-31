@@ -4,7 +4,7 @@ import numpy as np
 import math
 import svgwrite
 
-## TODO: use polylines to make contours to make a mask to find the average value to color the triangles
+## TODO:
 # gui to pick number of points and edge algorithm
 # color and fill options
 img = cv2.imread('Half.jpg')
