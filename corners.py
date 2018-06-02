@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import cv2
 import numpy as np
-import math
 import svgwrite
 
 ## TODO:
@@ -37,10 +36,6 @@ def corners(fn, numcorners=500, color=True):
         pts = [(int(p[0,0]),int(p[0,1])) for p in pts]
         fill = svgwrite.rgb(mean[2],mean[1],mean[0]) if color else gbr2gray(mean) 
         dwg.add(dwg.polygon(points=pts,fill=fill))
-
-    #cv2.imshow('rect',edges)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
 
     cv2.imwrite('corners.jpg',out)
     dwg.save()
