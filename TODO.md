@@ -1,10 +1,11 @@
 TODO List:
--[ ] text output
--[x] picture input
--[x] svg output
--[ ] GUI to sample output with sliders for
-    -[ ] gaussian block size and constant
-    -[ ] edge min/maxval
--[ ] make `hatch` SVG output efficient (compute boundaries rather than relying on a clipping mask, i.e. preclip)
--[ ] Gaussian Paint Strokes
--[ ] GDAL to import topography
+- [ ] text output
+- [x] picture input
+- [x] svg output
+- [ ] GUI to sample output with sliders for
+    - [ ] gaussian block size and constant
+    - [ ] edge min/maxval
+- [ ] make `hatch` SVG output efficient (compute boundaries rather than relying on a clipping mask, i.e. preclip)
+- [ ] Gaussian Paint Strokes
+- [ ] GDAL to import topography
+- [x] Make into a module
