@@ -1,9 +1,4 @@
-import edges
-import hatch
-import rect
-import waves
-import corners
-import draw
+import vg.draw
 
 EXT_IMG = '.jpg'
 
