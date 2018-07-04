@@ -41,8 +41,8 @@ def gbr2gray(mean):
 
 def getTriangles(gray):
     # Get corners and create list of Delaunay triangles
-    edges = cv2.Canny(gray, vg.EDGE_LOW, vg.EDGE_HIGH)
-    corners = np.int0(cv2.goodFeaturesToTrack(edges,vg.CORNERS_NUM,vg.CORNERS_LOW,vg.CORNERS_HIGH))
+    edges = cv2.Canny(gray, vg.INPUTS['EDGE_LOW']['val'], vg.INPUTS['EDGE_HIGH']['val'])
+    corners = np.int0(cv2.goodFeaturesToTrack(edges,vg.INPUTS['CORNERS_NUM']['val'],vg.INPUTS['CORNERS_LOW']['val'],vg.INPUTS['CORNERS_HIGH']['val']))
     subdiv = cv2.Subdiv2D((0,0,gray.shape[1],gray.shape[0]))
     for i in corners:
         x, y = i.ravel()
@@ -56,9 +56,9 @@ def edges(img, outname='edges', svgOutput=False, jpgOutput=False, b64Output=Fals
     
     # Find edges and then make into list of contours
     gray = cv2.cvtColor(img['img'], cv2.COLOR_BGR2GRAY)
-    edges = cv2.Canny(gray, vg.EDGE_HIGH, vg.EDGE_LOW)
+    edges = cv2.Canny(gray, vg.INPUTS['EDGE_HIGH']['val'], vg.INPUTS['EDGE_LOW']['val'])
     thresh = cv2.adaptiveThreshold(edges,255,cv2.ADAPTIVE_THRESH_GAUSSIAN_C,\
-                cv2.THRESH_BINARY, vg.THRESH_BLOCK, vg.THRESH_C)
+                cv2.THRESH_BINARY, vg.INPUTS['THRESH_BLOCK']['val'], vg.INPUTS['THRESH_C']['val'])
     out, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     out = cv2.bitwise_not(out)
     
@@ -93,14 +93,14 @@ def rect(img, color=True, outname='rect', svgOutput=False, jpgOutput=False, b64O
         dwg = svgwrite.Drawing(outname['svg'], size=(img['w'],img['h']))
 
     # Resample image by shrinking, then draw rectangles
-    mini = cv2.resize(img['img'], None, fx = 1/float(vg.RECT_SCALE), fy = 1/float(vg.RECT_SCALE), interpolation = cv2.INTER_AREA)
+    mini = cv2.resize(img['img'], None, fx = 1/float(vg.INPUTS['RECT_SCALE']['val']), fy = 1/float(vg.INPUTS['RECT_SCALE']['val']), interpolation = cv2.INTER_AREA)
     for i in range(0,mini.shape[0]):
         for j in range(0,mini.shape[1]):
             col = tuple([int(c) for c in mini[i,j]])
-            cv2.rectangle(out, (j*vg.RECT_SCALE,i*vg.RECT_SCALE), ((j+1)*vg.RECT_SCALE,(i+1)*vg.RECT_SCALE), col, -1)
+            cv2.rectangle(out, (j*vg.INPUTS['RECT_SCALE']['val'],i*vg.INPUTS['RECT_SCALE']['val']), ((j+1)*vg.INPUTS['RECT_SCALE']['val'],(i+1)*vg.INPUTS['RECT_SCALE']['val']), col, -1)
             if svgOutput:
                 fill = svgwrite.rgb(col[2],col[1],col[0]) if color else gbr2gray(col)
-                dwg.add(dwg.rect(insert=(j*vg.RECT_SCALE,i*vg.RECT_SCALE),size=(vg.RECT_SCALE,vg.RECT_SCALE),fill=fill))
+                dwg.add(dwg.rect(insert=(j*vg.INPUTS['RECT_SCALE']['val'],i*vg.INPUTS['RECT_SCALE']['val']),size=(vg.INPUTS['RECT_SCALE']['val'],vg.INPUTS['RECT_SCALE']['val']),fill=fill))
 
     # Output
     if jpgOutput:
@@ -177,7 +177,7 @@ def hatch(img,outname='hatch',randAngle=True,angle=70,svgOutput=False, jpgOutput
         cv2.drawContours(mask, [pts], 0, 255, -1)
         x,y,w,h = cv2.boundingRect(pts)
         maxDim = max(w,h)
-        numLines = int(cv2.mean(gray, mask = mask)[0]/(255*w*h) * vg.HATCH_DENSITY)
+        numLines = int(cv2.mean(gray, mask = mask)[0]/(255*w*h) * vg.INPUTS['HATCH_DENSITY']['val'])
         if (numLines > 1):
             temp = np.zeros(gray.shape, np.uint8)
             R = Q(randint(0,90)) if randAngle else Q
@@ -215,7 +215,7 @@ def waves(img, outname='waves', svgOutput=False, jpgOutput=False, b64Output=Fals
 
     # Resize and Resample Image
     gray = cv2.cvtColor(img['img'], cv2.COLOR_BGR2GRAY)
-    mini = cv2.resize(gray, (img['w'],vg.SIN_COUNT), interpolation = cv2.INTER_AREA)
+    mini = cv2.resize(gray, (img['w'],vg.INPUTS['SIN_COUNT']['val']), interpolation = cv2.INTER_AREA)
     inv_mini = cv2.bitwise_not(mini)
     out = np.ones(gray.shape, np.uint8)*255
 
@@ -224,7 +224,7 @@ def waves(img, outname='waves', svgOutput=False, jpgOutput=False, b64Output=Fals
         dwg = svgwrite.Drawing(outname['svg'], size=(img['w'],img['h']))
 
     xs = np.arange(0,mini.shape[1])
-    ys = (inv_mini/float(255))*vg.SIN_HEIGHT*np.sin(xs*2*math.pi/vg.SIN_LENGTH) + (np.matrix(range(0,mini.shape[0])).T + 0.5)*img['h']/mini.shape[0]
+    ys = (inv_mini/float(255))*vg.INPUTS['SIN_HEIGHT']['val']*np.sin(xs*2*math.pi/vg.INPUTS['SIN_LENGTH']['val']) + (np.matrix(range(0,mini.shape[0])).T + 0.5)*img['h']/mini.shape[0]
 
     for row in ys:
         pts = list(zip(xs, np.asarray(row).squeeze()))
