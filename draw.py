@@ -4,9 +4,10 @@ import svgwrite
 import os.path
 import vg
 import math
+import base64
 from random import randint
 
-def readImage(fn):
+def readImageFromFileName(fn):
     # cv2.imread does not throw an error if the input is bad
     # Check if the path is at least valid
     if not os.path.isfile(fn):
@@ -14,6 +15,13 @@ def readImage(fn):
     i = {}
     i['img'] = cv2.imread(fn) # this honestly creates a hassle, but makes
     i['h'], i['w'], _ = i['img'].shape # heighth and width easier to access
+    return i
+
+def readImageFromFile(f):
+    file_bytes = np.asarray(bytearray(f.read()), dtype=np.uint8)
+    i = {}
+    i['img'] = cv2.imdecode(file_bytes, cv2.IMREAD_UNCHANGED)
+    i['h'], i['w'], _ = i['img'].shape
     return i
 
 def cleanOutname(on):
@@ -44,7 +52,7 @@ def getTriangles(gray):
 
 def edges(infn, outname='edges', svgOutput=True):
     # Only draw the edges of objects, all in grayscale
-    img = readImage(infn)
+    img = readImageFromFileName(infn)
     outname = cleanOutname(outname)
     
     # Find edges and then make into list of contours
@@ -66,9 +74,8 @@ def edges(infn, outname='edges', svgOutput=True):
 
     return
 
-def rect(infn, color=True, outname='rect', svgOutput=True):
+def rect(img, color=True, outname='rect', svgOutput=True):
     # Resample image into pixel blocks
-    img = readImage(infn)
     outname = cleanOutname(outname)
 
     # Set up base image and output
@@ -90,6 +97,8 @@ def rect(infn, color=True, outname='rect', svgOutput=True):
                 fill = svgwrite.rgb(col[2],col[1],col[0]) if color else gbr2gray(col)
                 dwg.add(dwg.rect(insert=(j*vg.RECT_SCALE,i*vg.RECT_SCALE),size=(vg.RECT_SCALE,vg.RECT_SCALE),fill=fill))
 
+    _, buff = cv2.imencode('.jpg', out)
+    return base64.b64encode(buff)
     # Output
     cv2.imwrite(outname['im'],out)
     if svgOutput:
@@ -98,7 +107,7 @@ def rect(infn, color=True, outname='rect', svgOutput=True):
     return
 
 def corners(infn, outname='corners', color=True, svgOutput=True):
-    img = readImage(infn)
+    img = readImageFromFileName(infn)
     outname = cleanOutname(outname)
 
     # Set up base image and output
@@ -136,7 +145,7 @@ def hatch(infn,outname='hatch',randAngle=True,angle=70,svgOutput=False):
     Q = lambda theta: np.matrix([[math.cos(theta), -math.sin(theta)],[math.sin(theta),math.cos(theta)]])
     Q = Q if randAngle else Q(angle)
 
-    img = readImage(infn)
+    img = readImageFromFileName(infn)
     outname = cleanOutname(outname)
 
     # Setup base image and output
@@ -184,7 +193,7 @@ def hatch(infn,outname='hatch',randAngle=True,angle=70,svgOutput=False):
         dwg.save()
 
 def waves(infn, outname='waves', svgOutput=False):
-    img = readImage(infn)
+    img = readImageFromFileName(infn)
     outname = cleanOutname(outname)
 
     # Resize and Resample Image
@@ -211,3 +220,5 @@ def waves(infn, outname='waves', svgOutput=False):
     cv2.imwrite(outname['im'],out)
     if svgOutput:
         dwg.save()
+
+methods = {"Edges": edges, "Pixilize": rect, "Waves": waves, "Hatch": hatch, "Corners": corners}
