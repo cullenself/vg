@@ -50,9 +50,8 @@ def getTriangles(gray):
     return subdiv.getTriangleList()
 
 
-def edges(infn, outname='edges', svgOutput=True):
+def edges(img, outname='edges', svgOutput=False, jpgOutput=False, b64Output=False):
     # Only draw the edges of objects, all in grayscale
-    img = readImageFromFileName(infn)
     outname = cleanOutname(outname)
     
     # Find edges and then make into list of contours
@@ -62,7 +61,9 @@ def edges(infn, outname='edges', svgOutput=True):
                 cv2.THRESH_BINARY, vg.THRESH_BLOCK, vg.THRESH_C)
     out, contours, _ = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     out = cv2.bitwise_not(out)
-    cv2.imwrite(outname['im'], out)
+    
+    if jpgOutput:
+        cv2.imwrite(outname['im'], out)
 
     # Draw the contours onto an SVG
     if svgOutput:
@@ -72,9 +73,13 @@ def edges(infn, outname='edges', svgOutput=True):
             dwg.add(dwg.polyline(points=pts, stroke='black', fill='none'))
         dwg.save()
 
-    return
+    if b64Output:
+        _, buff = cv2.imencode('.jpg', out)
+        return base64.b64encode(buff)
+    else:
+        return
 
-def rect(img, color=True, outname='rect', svgOutput=True):
+def rect(img, color=True, outname='rect', svgOutput=False, jpgOutput=False, b64Output=False):
     # Resample image into pixel blocks
     outname = cleanOutname(outname)
 
@@ -97,17 +102,19 @@ def rect(img, color=True, outname='rect', svgOutput=True):
                 fill = svgwrite.rgb(col[2],col[1],col[0]) if color else gbr2gray(col)
                 dwg.add(dwg.rect(insert=(j*vg.RECT_SCALE,i*vg.RECT_SCALE),size=(vg.RECT_SCALE,vg.RECT_SCALE),fill=fill))
 
-    _, buff = cv2.imencode('.jpg', out)
-    return base64.b64encode(buff)
     # Output
-    cv2.imwrite(outname['im'],out)
+    if jpgOutput:
+        cv2.imwrite(outname['im'],out)
     if svgOutput:
         dwg.save()
 
-    return
+    if b64Output:
+        _, buff = cv2.imencode('.jpg', out)
+        return base64.b64encode(buff)
+    else:
+        return
 
-def corners(infn, outname='corners', color=True, svgOutput=True):
-    img = readImageFromFileName(infn)
+def corners(img, outname='corners', color=True, svgOutput=False, jpgOutput=False, b64Output=False):
     outname = cleanOutname(outname)
 
     # Set up base image and output
@@ -117,7 +124,7 @@ def corners(infn, outname='corners', color=True, svgOutput=True):
 
     # Instantiate SVG Output
     if svgOutput:
-        dwg = svgwrite.Drawing('corners.svg', size=(img['w'],img['h']))
+        dwg = svgwrite.Drawing(outname['svg'], size=(img['w'],img['h']))
 
     # Draw each triangle
     triList = getTriangles(gray)
@@ -134,18 +141,22 @@ def corners(infn, outname='corners', color=True, svgOutput=True):
             dwg.add(dwg.polygon(points=pts,fill=fill))
 
     # Finish up output
-    cv2.imwrite('corners.jpg',out)
+    if jpgOutput:
+        cv2.imwrite(outname['im'],out)
     if svgOutput:
         dwg.save()
 
-    return
+    if b64Output:
+        _, buff = cv2.imencode('.jpg', out)
+        return base64.b64encode(buff)
+    else:
+        return
 
-def hatch(infn,outname='hatch',randAngle=True,angle=70,svgOutput=False):
+def hatch(img,outname='hatch',randAngle=True,angle=70,svgOutput=False, jpgOutput=False, b64Output=False):
     # Setup transformation matrix early
     Q = lambda theta: np.matrix([[math.cos(theta), -math.sin(theta)],[math.sin(theta),math.cos(theta)]])
     Q = Q if randAngle else Q(angle)
 
-    img = readImageFromFileName(infn)
     outname = cleanOutname(outname)
 
     # Setup base image and output
@@ -188,12 +199,18 @@ def hatch(infn,outname='hatch',randAngle=True,angle=70,svgOutput=False):
             out = out + cv2.bitwise_and(mask,temp)
 
     # Output
-    cv2.imwrite(outname['im'],out)
+    if jpgOutput:
+        cv2.imwrite(outname['im'],out)
     if svgOutput:
         dwg.save()
 
-def waves(infn, outname='waves', svgOutput=False):
-    img = readImageFromFileName(infn)
+    if b64Output:
+        _, buff = cv2.imencode('.jpg', out)
+        return base64.b64encode(buff)
+    else:
+        return
+
+def waves(img, outname='waves', svgOutput=False, jpgOutput=False, b64Output=False):
     outname = cleanOutname(outname)
 
     # Resize and Resample Image
@@ -202,7 +219,7 @@ def waves(infn, outname='waves', svgOutput=False):
     inv_mini = cv2.bitwise_not(mini)
     out = np.ones(gray.shape, np.uint8)*255
 
-    # Instantiat SVG Output
+    # Instantiate SVG Output
     if svgOutput:
         dwg = svgwrite.Drawing(outname['svg'], size=(img['w'],img['h']))
 
@@ -210,15 +227,22 @@ def waves(infn, outname='waves', svgOutput=False):
     ys = (inv_mini/float(255))*vg.SIN_HEIGHT*np.sin(xs*2*math.pi/vg.SIN_LENGTH) + (np.matrix(range(0,mini.shape[0])).T + 0.5)*img['h']/mini.shape[0]
 
     for row in ys:
-        pts = zip(xs, np.asarray(row).squeeze())
+        pts = list(zip(xs, np.asarray(row).squeeze()))
         pts = np.array(pts).reshape((-1,1,2)).astype(np.int32)
         cv2.polylines(out, [pts], False, 0)
         pts = [(int(p[0,0]),int(p[0,1])) for p in pts]
         if svgOutput:
             dwg.add(dwg.polyline(points=pts, stroke='black', fill='none'))
 
-    cv2.imwrite(outname['im'],out)
+    if jpgOutput:
+        cv2.imwrite(outname['im'],out)
     if svgOutput:
         dwg.save()
+
+    if b64Output:
+        _, buff = cv2.imencode('.jpg', out)
+        return base64.b64encode(buff)
+    else:
+        return
 
 methods = {"Edges": edges, "Pixilize": rect, "Waves": waves, "Hatch": hatch, "Corners": corners}
